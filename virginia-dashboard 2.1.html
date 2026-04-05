@@ -1,0 +1,1521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Get Spent — Virginia's Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Syne:wght@600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:        #09090f;
+  --surface:   #111118;
+  --surface2:  #1a1a24;
+  --surface3:  #22222e;
+  --border:    #2a2a38;
+  --border2:   #363648;
+  --accent:    #e8ff47;
+  --accent-d:  #b8cc2a;
+  --teal:      #00d4c8;
+  --orange:    #ff9f43;
+  --purple:    #a29bfe;
+  --red:       #ff6b6b;
+  --green:     #00d48a;
+  --text:      #eeeef5;
+  --text2:     #9999b0;
+  --text3:     #55556a;
+  --needs:     #00d4c8;
+  --wants:     #ff9f43;
+  --financial: #a29bfe;
+  --income:    #00d48a;
+  --neil:      #ff9f9f;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Grain overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.4;
+}
+
+/* ── Layout ─────────────────────────────────── */
+.app { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; padding: 0 20px 60px; }
+
+/* ── Header ──────────────────────────────────── */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 32px 0 24px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.header-left { display: flex; flex-direction: column; gap: 4px; }
+.header-eyebrow {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text3);
+}
+.header-title {
+  font-family: 'Syne', sans-serif;
+  font-size: clamp(28px, 5vw, 42px);
+  font-weight: 800;
+  color: var(--neil);
+  line-height: 1;
+  letter-spacing: -1px;
+}
+.header-right { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.header-date {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--text3);
+}
+.refresh-btn {
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: uppercase;
+}
+.refresh-btn:hover { border-color: var(--accent); color: var(--accent); }
+.nav-link {
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--text2);
+  text-decoration: none;
+  transition: all 0.2s;
+  text-transform: uppercase;
+}
+.nav-link:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── Config banner ───────────────────────────── */
+.config-banner {
+  background: rgba(162,155,254,0.08);
+  border: 1px solid var(--purple);
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 28px;
+  font-size: 13px;
+  color: var(--purple);
+  line-height: 1.6;
+}
+.config-banner strong { font-size: 14px; display: block; margin-bottom: 6px; }
+.config-banner code {
+  background: rgba(162,155,254,0.15);
+  padding: 2px 6px; border-radius: 4px;
+  font-family: 'DM Mono', monospace; font-size: 11px;
+}
+
+/* ── Tabs ────────────────────────────────────── */
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 32px;
+  background: var(--surface);
+  padding: 4px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar { display: none; }
+.tab {
+  flex: 1;
+  min-width: 90px;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text3);
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.tab:hover { color: var(--text2); }
+.tab.active {
+  background: var(--surface3);
+  color: var(--accent);
+  border: 1px solid var(--border2);
+}
+
+/* ── Tab panels ──────────────────────────────── */
+.panel { display: none; animation: fadeUp 0.3s ease; }
+.panel.active { display: block; }
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Cards & grid ────────────────────────────── */
+.grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 24px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+@media (max-width: 700px) {
+  .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 480px) {
+  .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+.card:hover { border-color: var(--border2); }
+.card-accent { border-left: 3px solid var(--accent); }
+.card-teal   { border-left: 3px solid var(--teal); }
+.card-purple { border-left: 3px solid var(--purple); }
+.card-orange { border-left: 3px solid var(--orange); }
+.card-green  { border-left: 3px solid var(--green); }
+.card-red    { border-left: 3px solid var(--red); }
+
+.card-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text3);
+  margin-bottom: 8px;
+}
+.card-value {
+  font-family: 'Syne', sans-serif;
+  font-size: clamp(22px, 4vw, 32px);
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.5px;
+  line-height: 1.1;
+}
+.card-value.accent { color: var(--accent); }
+.card-value.teal   { color: var(--teal); }
+.card-value.green  { color: var(--green); }
+.card-value.red    { color: var(--red); }
+.card-sub {
+  font-size: 12px;
+  color: var(--text3);
+  margin-top: 4px;
+}
+.card-sub.positive { color: var(--green); }
+.card-sub.negative { color: var(--red); }
+
+/* ── Section headings ────────────────────────── */
+.section-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.section-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* ── Budget bars ─────────────────────────────── */
+.budget-section { margin-bottom: 32px; }
+.budget-bucket-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.budget-bucket-label.needs    { color: var(--needs); }
+.budget-bucket-label.wants    { color: var(--wants); }
+.budget-bucket-label.financial{ color: var(--financial); }
+.bucket-dot {
+  width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+}
+.needs .bucket-dot     { background: var(--needs); }
+.wants .bucket-dot     { background: var(--wants); }
+.financial .bucket-dot { background: var(--financial); }
+
+.budget-items { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+
+.budget-item { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+.budget-item-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 8px;
+}
+.budget-item-name { font-size: 13px; font-weight: 500; color: var(--text); }
+.budget-item-amounts {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--text3);
+  white-space: nowrap;
+}
+.budget-item-amounts span { color: var(--text2); }
+.budget-bar-track {
+  height: 6px;
+  background: var(--surface3);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.budget-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+  width: 0%;
+}
+.fill-needs     { background: var(--needs); }
+.fill-wants     { background: var(--wants); }
+.fill-financial { background: var(--financial); }
+.fill-over      { background: var(--red); }
+
+/* ── Net Worth chart ─────────────────────────── */
+.networth-chart-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+.chart-title {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text3);
+  margin-bottom: 16px;
+}
+canvas { width: 100% !important; }
+
+/* ── Account rows ────────────────────────────── */
+.account-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px; }
+.account-row {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.account-row-left { display: flex; flex-direction: column; gap: 2px; }
+.account-name { font-size: 13px; font-weight: 500; color: var(--text); }
+.account-type {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text3);
+}
+.account-value {
+  font-family: 'Syne', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+.account-value.liability { color: var(--red); }
+.account-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  display: inline-block; margin-right: 8px; flex-shrink: 0;
+}
+
+/* ── Portfolio rows ──────────────────────────── */
+.portfolio-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px; }
+.portfolio-row {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 18px;
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 12px;
+  align-items: center;
+}
+.portfolio-ticker {
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--accent);
+}
+.portfolio-name { font-size: 12px; color: var(--text3); margin-top: 2px; }
+.portfolio-account {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text3);
+  background: var(--surface3);
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+.portfolio-value {
+  font-family: 'Syne', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  text-align: right;
+}
+.portfolio-dca {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--text3);
+  text-align: right;
+  margin-top: 2px;
+}
+
+/* ── DCA projection chart ────────────────────── */
+.projection-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+.projection-controls {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.proj-btn {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text3);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.proj-btn.active, .proj-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── Goals ───────────────────────────────────── */
+.goal-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+.goal-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.goal-name {
+  font-family: 'Syne', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+.goal-pct {
+  font-family: 'Syne', sans-serif;
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--accent);
+}
+.goal-bar-track {
+  height: 8px;
+  background: var(--surface3);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+.goal-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--teal), var(--accent));
+  border-radius: 4px;
+  transition: width 1s cubic-bezier(0.4,0,0.2,1);
+  width: 0%;
+}
+.goal-meta {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.goal-meta-item { display: flex; flex-direction: column; gap: 3px; }
+.goal-meta-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text3);
+}
+.goal-meta-value { font-size: 14px; font-weight: 600; color: var(--text); }
+
+/* ── Crypto live ──────────────────────────────── */
+.crypto-row {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.crypto-left { display: flex; flex-direction: column; gap: 4px; }
+.crypto-name {
+  font-family: 'Syne', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+}
+.crypto-price {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--text3);
+}
+.crypto-right { text-align: right; }
+.crypto-value {
+  font-family: 'Syne', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--accent);
+}
+.crypto-units {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--text3);
+}
+
+/* ── Loading state ────────────────────────────── */
+.loading-pulse {
+  background: linear-gradient(90deg, var(--surface) 25%, var(--surface2) 50%, var(--surface) 75%);
+  background-size: 200% 100%;
+  animation: pulse 1.5s infinite;
+  border-radius: 6px;
+  height: 20px;
+}
+@keyframes pulse {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ── Scrollable table ─────────────────────────── */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text3);
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text2);
+}
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.td-mono { font-family: 'DM Mono', monospace; }
+.td-right { text-align: right; }
+.td-accent { color: var(--accent); font-weight: 600; }
+.td-green  { color: var(--green); }
+.td-red    { color: var(--red); }
+.td-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.tag-needs     { background: rgba(0,212,200,0.12); color: var(--needs); }
+.tag-wants     { background: rgba(255,159,67,0.12); color: var(--wants); }
+.tag-financial { background: rgba(162,155,254,0.12); color: var(--financial); }
+.tag-income    { background: rgba(0,212,138,0.12); color: var(--income); }
+.tag-standard    { background: rgba(0,212,138,0.08); color: var(--green); }
+.tag-treat       { background: rgba(255,107,107,0.08); color: var(--red); }
+.tag-unexpected  { background: rgba(232,255,71,0.08); color: var(--accent); }
+
+/* ── Responsive ───────────────────────────────── */
+@media (max-width: 600px) {
+  .goal-meta { grid-template-columns: 1fr 1fr; }
+  .portfolio-row { grid-template-columns: 1fr auto; }
+  .portfolio-account { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ── CONFIG (fill these in) ──────────────── -->
+<script>
+const CONFIG = {
+  SHEET_ID:    'https://docs.google.com/spreadsheets/d/1E-w9C3RTH1ubxdh4wBIa63kc7XFWJJHaQU6yWsiceRU/edit?gid=1448698315#gid=1448698315',
+  API_KEY:     'AIzaSyAZZn-WF-TJAhUC--o3D5LyfzxgTwby22E',
+  PERSON:      'Virginia',
+  PERSON_COL:  'Virginia',   // matches Budget sheet column header
+  ACCOUNTS_SHEET:  "Virginia — Accounts",
+  PORTFOLIO_SHEET: "Virginia — Portfolio",
+  GOALS_SHEET:     "Virginia — Goals",
+  BUDGET_SHEET:    "Budget",
+  TRANSACTIONS:    "Transactions",
+  SUMMARY_SHEET:   "Summary",
+};
+const CONFIGURED = CONFIG.SHEET_ID !== 'YOUR_GOOGLE_SHEET_ID';
+</script>
+
+<!-- ── HEADER ─────────────────────────────── -->
+<div class="header">
+  <div class="header-left">
+    <div class="header-eyebrow">Get Spent · Dashboard</div>
+    <div class="header-title">Virginia</div>
+  </div>
+  <div class="header-right">
+    <span class="header-date" id="headerDate"></span>
+    <a href="virginia.html" class="nav-link">+ Log</a>
+    <button class="refresh-btn" onclick="loadAll()">↻ Refresh</button>
+  </div>
+</div>
+
+<div class="config-banner" id="configBanner" style="display:none">
+  <strong>⚡ Connect to Google Sheets to see live data</strong>
+  Set <code>SHEET_ID</code> and <code>API_KEY</code> at the top of this file.
+  Until then, demo data is shown. Get a free API key at <code>console.cloud.google.com</code> → enable Sheets API.
+</div>
+
+<!-- ── TABS ───────────────────────────────── -->
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('budget')">Budget</button>
+  <button class="tab" onclick="switchTab('networth')">Net Worth</button>
+  <button class="tab" onclick="switchTab('portfolio')">Portfolio</button>
+  <button class="tab" onclick="switchTab('goals')">Goals</button>
+  <button class="tab" onclick="switchTab('transactions')">Transactions</button>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB 1 — BUDGET
+════════════════════════════════════════════ -->
+<div class="panel active" id="panel-budget">
+
+  <!-- Summary cards -->
+  <div class="grid-3" id="budgetSummaryCards">
+    <div class="card card-accent">
+      <div class="card-label">Spent This Month</div>
+      <div class="card-value accent" id="b-spent">—</div>
+      <div class="card-sub" id="b-spent-sub">loading...</div>
+    </div>
+    <div class="card card-teal">
+      <div class="card-label">Monthly Budget</div>
+      <div class="card-value teal" id="b-budget">—</div>
+      <div class="card-sub" id="b-month"></div>
+    </div>
+    <div class="card card-green">
+      <div class="card-label">Remaining</div>
+      <div class="card-value" id="b-remaining">—</div>
+      <div class="card-sub" id="b-remaining-sub"></div>
+    </div>
+  </div>
+
+  <!-- Needs -->
+  <div class="budget-section">
+    <div class="section-title">Budget Breakdown</div>
+    <div class="budget-bucket-label needs"><span class="bucket-dot"></span>Needs</div>
+    <div class="budget-items" id="budget-needs"></div>
+    <div class="budget-bucket-label wants"><span class="bucket-dot"></span>Wants</div>
+    <div class="budget-items" id="budget-wants"></div>
+    <div class="budget-bucket-label financial"><span class="bucket-dot"></span>Financial</div>
+    <div class="budget-items" id="budget-financial"></div>
+  </div>
+
+  <!-- YTD table -->
+  <div class="section-title">Year to Date</div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="table-wrap">
+      <table id="ytdTable">
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th>Bucket</th>
+            <th class="td-right">YTD Actual</th>
+            <th class="td-right">YTD Budget</th>
+            <th class="td-right">Variance</th>
+          </tr>
+        </thead>
+        <tbody id="ytdBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB 2 — NET WORTH
+════════════════════════════════════════════ -->
+<div class="panel" id="panel-networth">
+
+  <div class="grid-2" style="margin-bottom:24px">
+    <div class="card card-accent" style="grid-column:1/-1">
+      <div class="card-label">Total Net Worth</div>
+      <div class="card-value accent" id="nw-total" style="font-size:clamp(32px,6vw,52px)">—</div>
+      <div class="card-sub" id="nw-sub">as of this month</div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card card-green">
+      <div class="card-label">Total Assets</div>
+      <div class="card-value green" id="nw-assets">—</div>
+    </div>
+    <div class="card card-red">
+      <div class="card-label">Total Liabilities</div>
+      <div class="card-value red" id="nw-liabilities">—</div>
+    </div>
+  </div>
+
+  <!-- Accounts breakdown -->
+  <div class="section-title">Accounts</div>
+  <div class="account-list" id="accountList"></div>
+
+  <!-- Net worth chart -->
+  <div class="networth-chart-wrap">
+    <div class="chart-title">Net Worth Trend</div>
+    <canvas id="networthChart" height="220"></canvas>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB 3 — PORTFOLIO
+════════════════════════════════════════════ -->
+<div class="panel" id="panel-portfolio">
+
+  <div class="grid-3" style="margin-bottom:24px">
+    <div class="card card-accent">
+      <div class="card-label">Total Portfolio</div>
+      <div class="card-value accent" id="port-total">—</div>
+    </div>
+    <div class="card card-teal">
+      <div class="card-label">Monthly DCA</div>
+      <div class="card-value teal" id="port-dca">—</div>
+    </div>
+    <div class="card card-purple">
+      <div class="card-label">Annual DCA</div>
+      <div class="card-value" style="color:var(--purple)" id="port-annual">—</div>
+    </div>
+  </div>
+
+  <!-- Crypto -->
+  <div class="section-title">Crypto</div>
+  <div id="cryptoList"></div>
+
+  <!-- ETFs / Stocks -->
+  <div class="section-title">Stocks & ETFs</div>
+  <div class="portfolio-list" id="portfolioList"></div>
+
+  <!-- DCA Projection -->
+  <div class="section-title">DCA Projection</div>
+  <div class="projection-wrap">
+    <div class="projection-controls">
+      <button class="proj-btn active" onclick="drawProjection(5,this)">5 yr</button>
+      <button class="proj-btn" onclick="drawProjection(10,this)">10 yr</button>
+      <button class="proj-btn" onclick="drawProjection(20,this)">20 yr</button>
+      <button class="proj-btn" onclick="drawProjection(30,this)">30 yr</button>
+    </div>
+    <canvas id="projectionChart" height="250"></canvas>
+    <div style="margin-top:12px;font-family:'DM Mono',monospace;font-size:10px;color:var(--text3)">
+      Based on 7% annual return + current DCA schedule
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB 4 — GOALS
+════════════════════════════════════════════ -->
+<div class="panel" id="panel-goals">
+  <div id="goalsList"></div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB 5 — TRANSACTIONS
+════════════════════════════════════════════ -->
+<div class="panel" id="panel-transactions">
+  <div class="grid-4" style="margin-bottom:16px">
+    <div class="card">
+      <div class="card-label">Filter Month</div>
+      <select id="txMonthFilter" onchange="renderTransactions()"
+        style="background:transparent;border:none;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;width:100%;outline:none;cursor:pointer">
+        <option value="">All Months</option>
+      </select>
+    </div>
+    <div class="card">
+      <div class="card-label">Filter Category</div>
+      <select id="txCatFilter" onchange="renderTransactions()"
+        style="background:transparent;border:none;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;width:100%;outline:none;cursor:pointer">
+        <option value="">All Categories</option>
+      </select>
+    </div>
+    <div class="card">
+      <div class="card-label">Filter Quality</div>
+      <select id="txQualFilter" onchange="renderTransactions()"
+        style="background:transparent;border:none;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;width:100%;outline:none;cursor:pointer">
+        <option value="">All</option>
+        <option>Standard</option><option>Treat</option><option>Unexpected</option>
+      </select>
+    </div>
+    <div class="card">
+      <div class="card-label">Total Shown</div>
+      <div class="card-value accent" id="txTotal" style="font-size:20px">—</div>
+    </div>
+  </div>
+
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Category</th>
+            <th>Location</th>
+            <th>Quality</th>
+            <th class="td-right">Cost</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody id="txBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+</div><!-- /app -->
+
+<script>
+// ══════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════
+let state = {
+  transactions: [],
+  budget: [],
+  summary: [],
+  accounts: [],
+  portfolio: { crypto: [], etfs: [] },
+  goals: [],
+  cryptoPrices: { btc: 0, eth: 0 },
+  currentPortfolioValue: 0,
+  monthlyDCA: 0,
+};
+
+// Demo data for unconfigured state
+const DEMO = {
+  transactions: [
+    {date:'2026-04-01',category:'Groceries',bucket:'Needs',location:'Superstore',cost:89.50,quality:'Standard',notes:'Weekly shop'},
+    {date:'2026-04-02',category:'Coffee & Drinks',bucket:'Wants',location:'Tims',cost:4.10,quality:'Treat',notes:''},
+    {date:'2026-04-02',category:'Transport / Fuel',bucket:'Needs',location:'Irving',cost:72.00,quality:'Standard',notes:'Diesel'},
+    {date:'2026-04-03',category:'Dining Out',bucket:'Wants',location:'Murphys',cost:45.00,quality:'Treat',notes:'Dinner with Byron'},
+    {date:'2026-04-04',category:'Subscriptions',bucket:'Wants',location:'',cost:14.94,quality:'Standard',notes:'YouTube Premium'},
+    {date:'2026-04-05',category:'Retirement / Investing',bucket:'Financial',location:'',cost:150.00,quality:'Standard',notes:'S&P500'},
+  ],
+  budget: [
+    {category:'Rent',bucket:'Needs',neil:950,combined:1700},
+    {category:'Groceries',bucket:'Needs',neil:600,combined:1000},
+    {category:'Transport / Fuel',bucket:'Needs',neil:200,combined:300},
+    {category:'Utilities',bucket:'Needs',neil:0,combined:220},
+    {category:'Insurance',bucket:'Needs',neil:205.5,combined:230.5},
+    {category:'Health',bucket:'Needs',neil:200,combined:400},
+    {category:'Medication',bucket:'Needs',neil:50,combined:100},
+    {category:'Dining Out',bucket:'Wants',neil:200,combined:450},
+    {category:'Coffee & Drinks',bucket:'Wants',neil:50,combined:100},
+    {category:'Shopping',bucket:'Wants',neil:200,combined:400},
+    {category:'Hobby / Fun',bucket:'Wants',neil:200,combined:400},
+    {category:'Subscriptions',bucket:'Wants',neil:197.17,combined:327.17},
+    {category:'Debt Payments',bucket:'Financial',neil:62.63,combined:312.63},
+    {category:'Emergency Fund',bucket:'Financial',neil:0,combined:3000},
+    {category:'Retirement / Investing',bucket:'Financial',neil:1000,combined:15000},
+  ],
+  accounts: [
+    {name:'Cash',type:'Asset',value:9500,color:'var(--green)'},
+    {name:'Chequing',type:'Asset',value:900,color:'var(--teal)'},
+    {name:'TFSA',type:'Asset — Tax Free',value:1281.29,color:'var(--accent)'},
+    {name:'FHSA',type:'Asset — House Fund',value:16892.84,color:'var(--accent)'},
+    {name:'RRSP',type:'Asset — House Fund',value:23144.94,color:'var(--accent)'},
+    {name:'Crypto',type:'Asset — Live',value:28946.29,color:'var(--orange)'},
+    {name:'Student Loan',type:'Liability',value:-2000,color:'var(--red)'},
+  ],
+  goals: [
+    {name:'House Down Payment',target:100000,current:17000,funded:'FHSA + RRSP',monthly:666,months:124},
+    {name:'Emergency Fund',target:10000,current:2500,funded:'TFSA',monthly:100,months:75},
+  ],
+  portfolio: {
+    crypto: [
+      {name:'Bitcoin',ticker:'BTC',units:0,price:0,dca:0},
+      {name:'Ethereum',ticker:'ETH',units:0,price:0,dca:0},
+    ],
+    etfs: [
+      {name:'High Interest Savings ETF',ticker:'CASH.TO',account:'RRSP',units:211,avgCost:49.98,dca:0},
+      {name:'Purpose Bitcoin ETF',ticker:'BTCC.TO',account:'RRSP',units:506,avgCost:12.51,dca:0},
+      {name:'High Interest Savings ETF',ticker:'CASH.TO',account:'FHSA',units:165.15,avgCost:50.01,dca:666},
+      {name:'Purpose Bitcoin ETF',ticker:'BTCC.TO',account:'FHSA',units:515.34,avgCost:12.61,dca:0},
+      {name:'Vanguard All-Equity VEQT',ticker:'VEQT',account:'TFSA',units:7.27,avgCost:55.03,dca:100},
+      {name:'Vanguard S&P500 VFV',ticker:'VFV',account:'TFSA',units:5.42,avgCost:165.98,dca:200},
+    ]
+  },
+  networthHistory: [
+    {month:'Nov',value:10000},{month:'Dec',value:11000},
+    {month:'Jan',value:12000},{month:'Feb',value:13500},
+    {month:'Mar',value:14000},{month:'Apr',value:-7500},
+  ]
+};
+
+// ══════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════
+function init() {
+  document.getElementById('headerDate').textContent =
+    new Date().toLocaleDateString('en-CA',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+
+  if (!CONFIGURED) {
+    document.getElementById('configBanner').style.display = 'block';
+    loadDemo();
+  } else {
+    loadAll();
+  }
+}
+
+function loadDemo() {
+  state.transactions = DEMO.transactions;
+  state.budget       = DEMO.budget;
+  state.accounts     = DEMO.accounts;
+  state.goals        = DEMO.goals;
+  state.portfolio    = DEMO.portfolio;
+  fetchCryptoPrices().then(() => {
+    renderBudget();
+    renderNetWorth(DEMO.networthHistory);
+    renderPortfolio();
+    renderGoals();
+    renderTransactions();
+    populateFilters();
+  });
+}
+
+// ══════════════════════════════════════════════════════
+// GOOGLE SHEETS LOADER
+// ══════════════════════════════════════════════════════
+async function loadAll() {
+  if (!CONFIGURED) { loadDemo(); return; }
+  try {
+    const [budget, summary, accounts, portfolio, goals, transactions] = await Promise.all([
+      fetchSheet(CONFIG.BUDGET_SHEET),
+      fetchSheet(CONFIG.SUMMARY_SHEET),
+      fetchSheet(CONFIG.ACCOUNTS_SHEET),
+      fetchSheet(CONFIG.PORTFOLIO_SHEET),
+      fetchSheet(CONFIG.GOALS_SHEET),
+      fetchSheet(CONFIG.TRANSACTIONS),
+    ]);
+    await fetchCryptoPrices();
+    parseBudget(budget);
+    parseSummary(summary);
+    parseAccounts(accounts);
+    parsePortfolio(portfolio);
+    parseGoals(goals);
+    parseTransactions(transactions);
+    renderBudget();
+    renderNetWorth();
+    renderPortfolio();
+    renderGoals();
+    renderTransactions();
+    populateFilters();
+  } catch(e) {
+    console.error(e);
+    loadDemo();
+  }
+}
+
+async function fetchSheet(sheetName) {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/${encodeURIComponent(sheetName)}?key=${CONFIG.API_KEY}`;
+  const r = await fetch(url);
+  const d = await r.json();
+  return d.values || [];
+}
+
+async function fetchCryptoPrices() {
+  try {
+    const r = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=cad');
+    const d = await r.json();
+    state.cryptoPrices.btc = d.bitcoin?.cad || 0;
+    state.cryptoPrices.eth = d.ethereum?.cad || 0;
+  } catch(e) {
+    state.cryptoPrices = { btc: 120000, eth: 4800 }; // fallback demo
+  }
+}
+
+// ══════════════════════════════════════════════════════
+// PARSERS
+// ══════════════════════════════════════════════════════
+function parseBudget(rows) {
+  if (rows.length < 2) return;
+  const headers = rows[1];
+  const neilIdx = headers.findIndex(h => h && h.toLowerCase().includes('neil'));
+  state.budget = rows.slice(2).map(r => ({
+    category: r[0] || '',
+    bucket:   r[1] || '',
+    neil:     parseFloat(r[neilIdx]) || 0,
+    combined: parseFloat(r[4]) || 0,
+  })).filter(r => r.category && !['INCOME','Total Expenses','MONTHLY REMAINDER'].includes(r.category));
+}
+
+function parseSummary(rows) {
+  if (rows.length < 2) return;
+  state.summary = rows.slice(2).map(r => ({
+    category:  r[0] || '',
+    bucket:    r[1] || '',
+    monthly:   parseFloat(r[2]) || 0,
+    jan: parseFloat(r[3])||0, feb: parseFloat(r[4])||0, mar: parseFloat(r[5])||0,
+    ytdActual: parseFloat(r[15]) || 0,
+    ytdBudget: parseFloat(r[16]) || 0,
+    variance:  parseFloat(r[17]) || 0,
+  })).filter(r => r.category);
+}
+
+function parseAccounts(rows) {
+  if (rows.length < 4) return;
+  const r = rows[3]; // first data row (current month)
+  state.accounts = [
+    {name:'Cash',     type:'Asset',            value: parseFloat(r[2])||0,  color:'var(--green)'},
+    {name:'Chequing', type:'Asset',            value: parseFloat(r[3])||0,  color:'var(--teal)'},
+    {name:'TFSA',     type:'Asset — Savings',  value: parseFloat(r[4])||0,  color:'var(--accent)'},
+    {name:'FHSA',     type:'Asset — House',    value: parseFloat(r[5])||0,  color:'var(--accent)'},
+    {name:'RRSP',     type:'Asset — House',    value: parseFloat(r[6])||0,  color:'var(--accent)'},
+    {name:'Crypto',   type:'Asset — Live',     value: parseFloat(r[9])||0,  color:'var(--orange)'},
+    {name:'Student Loan', type:'Liability',    value: -(parseFloat(r[10])||0), color:'var(--red)'},
+  ];
+  // Net worth history from all rows
+  state.networthHistory = rows.slice(3).filter(r=>r[0]).map(r=>({
+    month: r[0], value: parseFloat(r[12])||0
+  }));
+}
+
+function parsePortfolio(rows) {
+  const cryptoRows = [], etfRows = [];
+  let section = '';
+  rows.forEach(r => {
+    if (!r[0]) return;
+    if (r[0] === 'CRYPTO') { section = 'crypto'; return; }
+    if (r[0] === 'STOCKS & ETFs') { section = 'etf'; return; }
+    if (['Total Crypto','Total Stocks/ETFs','TOTAL PORTFOLIO'].includes(r[0])) return;
+    if (section === 'crypto') {
+      cryptoRows.push({name:r[0],ticker:r[1],units:parseFloat(r[3])||0,dca:parseFloat(r[5])||0});
+    } else if (section === 'etf') {
+      etfRows.push({name:r[0],ticker:r[1],account:r[2],units:parseFloat(r[3])||0,avgCost:parseFloat(r[4])||0,dca:parseFloat(r[6])||0});
+    }
+  });
+  state.portfolio = { crypto: cryptoRows, etfs: etfRows };
+}
+
+function parseGoals(rows) {
+  state.goals = rows.slice(3).filter(r=>r[0]&&r[0]!=='NOTES').map(r=>({
+    name:    r[0],
+    target:  parseFloat(r[1])||0,
+    funded:  r[2]||'',
+    current: parseFloat(r[3])||0,
+    monthly: parseFloat(r[5])||0,
+    months:  r[6]||'—',
+  }));
+}
+
+function parseTransactions(rows) {
+  if (rows.length < 2) return;
+  state.transactions = rows.slice(1).filter(r=>r[1]===CONFIG.PERSON).map(r=>({
+    timestamp: r[0], person: r[1], date: r[2], category: r[3],
+    bucket: r[4], location: r[5], cost: parseFloat(r[6])||0,
+    quality: r[7], notes: r[8], month: r[9], year: r[10],
+  }));
+}
+
+// ══════════════════════════════════════════════════════
+// RENDERERS
+// ══════════════════════════════════════════════════════
+
+// ── Budget ────────────────────────────────────────────
+function renderBudget() {
+  const now = new Date();
+  const currentMonth = now.toLocaleDateString('en-CA',{month:'short'});
+
+  // Calculate this month's spending per category from transactions
+  const monthSpend = {};
+  state.transactions.forEach(t => {
+    if (t.month === currentMonth || (DEMO && true)) {
+      monthSpend[t.category] = (monthSpend[t.category]||0) + t.cost;
+    }
+  });
+
+  const buckets = {Needs:[], Wants:[], Financial:[]};
+  let totalBudget = 0, totalSpent = 0;
+
+  state.budget.forEach(b => {
+    if (!b.bucket || !buckets[b.bucket]) return;
+    const spent = monthSpend[b.category] || 0;
+    const bud = b.neil || 0;
+    totalBudget += bud;
+    totalSpent += spent;
+    buckets[b.bucket].push({...b, spent});
+  });
+
+  ['Needs','Wants','Financial'].forEach(bucket => {
+    const container = document.getElementById(`budget-${bucket.toLowerCase()}`);
+    container.innerHTML = '';
+    buckets[bucket].forEach(item => {
+      const pct = item.neil > 0 ? Math.min((item.spent / item.neil) * 100, 100) : 0;
+      const over = item.spent > item.neil && item.neil > 0;
+      const fillClass = over ? 'fill-over' : `fill-${bucket.toLowerCase()}`;
+      container.innerHTML += `
+        <div class="budget-item">
+          <div class="budget-item-top">
+            <span class="budget-item-name">${item.category}</span>
+            <span class="budget-item-amounts"><span>$${item.spent.toFixed(2)}</span> / $${item.neil.toFixed(0)}</span>
+          </div>
+          <div class="budget-bar-track">
+            <div class="budget-bar-fill ${fillClass}" style="width:${pct}%"></div>
+          </div>
+        </div>`;
+    });
+  });
+
+  const remaining = totalBudget - totalSpent;
+  document.getElementById('b-spent').textContent = '$'+totalSpent.toFixed(2);
+  document.getElementById('b-budget').textContent = '$'+totalBudget.toFixed(2);
+  document.getElementById('b-month').textContent = currentMonth + ' ' + now.getFullYear();
+  document.getElementById('b-remaining').textContent = '$'+Math.abs(remaining).toFixed(2);
+  document.getElementById('b-remaining').className = 'card-value ' + (remaining >= 0 ? 'green' : 'red');
+  document.getElementById('b-spent-sub').textContent = `${((totalSpent/totalBudget)*100).toFixed(0)}% of budget used`;
+  document.getElementById('b-remaining-sub').textContent = remaining >= 0 ? 'under budget' : 'over budget';
+  document.getElementById('b-remaining-sub').className = 'card-sub ' + (remaining >= 0 ? 'positive' : 'negative');
+
+  // YTD table
+  const summary = state.summary.length ? state.summary : state.budget.map(b=>({
+    category:b.category, bucket:b.bucket,
+    ytdActual:(monthSpend[b.category]||0), ytdBudget:b.neil*now.getMonth()+1, variance:0
+  }));
+  const tbody = document.getElementById('ytdBody');
+  tbody.innerHTML = '';
+  summary.filter(s=>!['INCOME','Total Income'].includes(s.category)).forEach(s => {
+    const variance = s.ytdBudget - s.ytdActual;
+    tbody.innerHTML += `
+      <tr>
+        <td>${s.category}</td>
+        <td><span class="td-tag tag-${(s.bucket||'').toLowerCase()}">${s.bucket||''}</span></td>
+        <td class="td-right td-mono">$${(s.ytdActual||0).toFixed(2)}</td>
+        <td class="td-right td-mono">$${(s.ytdBudget||0).toFixed(2)}</td>
+        <td class="td-right td-mono ${variance>=0?'td-green':'td-red'}">${variance>=0?'+':''}$${variance.toFixed(2)}</td>
+      </tr>`;
+  });
+
+  // Animate bars
+  requestAnimationFrame(() => {
+    document.querySelectorAll('.budget-bar-fill').forEach(b => {
+      const w = b.style.width; b.style.width='0%';
+      setTimeout(()=>b.style.width=w, 50);
+    });
+  });
+}
+
+// ── Net Worth ─────────────────────────────────────────
+function renderNetWorth(historyOverride) {
+  const assets = state.accounts.filter(a=>a.value>0).reduce((s,a)=>s+a.value,0);
+  const liabs  = state.accounts.filter(a=>a.value<0).reduce((s,a)=>s+Math.abs(a.value),0);
+  const nw     = assets - liabs;
+
+  document.getElementById('nw-total').textContent = '$'+nw.toLocaleString('en-CA',{minimumFractionDigits:2,maximumFractionDigits:2});
+  document.getElementById('nw-assets').textContent = '$'+assets.toLocaleString('en-CA',{minimumFractionDigits:0,maximumFractionDigits:0});
+  document.getElementById('nw-liabilities').textContent = '$'+liabs.toLocaleString('en-CA',{minimumFractionDigits:0,maximumFractionDigits:0});
+
+  const list = document.getElementById('accountList');
+  list.innerHTML = '';
+  state.accounts.forEach(a => {
+    const isLiab = a.value < 0;
+    list.innerHTML += `
+      <div class="account-row">
+        <div class="account-row-left">
+          <div class="account-name"><span class="account-dot" style="background:${a.color}"></span>${a.name}</div>
+          <div class="account-type">${a.type}</div>
+        </div>
+        <div class="account-value ${isLiab?'liability':''}">
+          ${isLiab?'-':''}$${Math.abs(a.value).toLocaleString('en-CA',{minimumFractionDigits:2,maximumFractionDigits:2})}
+        </div>
+      </div>`;
+  });
+
+  // Chart
+  const history = historyOverride || state.networthHistory || [];
+  if (history.length) drawNetWorthChart(history);
+}
+
+function drawNetWorthChart(history) {
+  const canvas = document.getElementById('networthChart');
+  const ctx = canvas.getContext('2d');
+  canvas.width = canvas.offsetWidth * window.devicePixelRatio || 600;
+  canvas.height = 220 * (window.devicePixelRatio || 1);
+  ctx.scale(window.devicePixelRatio||1, window.devicePixelRatio||1);
+  const W = canvas.offsetWidth, H = 220;
+
+  const vals = history.map(h=>h.value);
+  const min = Math.min(...vals) * 0.9;
+  const max = Math.max(...vals) * 1.05;
+  const pad = {top:20,right:20,bottom:30,left:60};
+  const plotW = W - pad.left - pad.right;
+  const plotH = H - pad.top - pad.bottom;
+
+  ctx.clearRect(0,0,W,H);
+
+  // Grid lines
+  ctx.strokeStyle = '#2a2a38'; ctx.lineWidth = 1;
+  [0,0.25,0.5,0.75,1].forEach(f => {
+    const y = pad.top + plotH * (1-f);
+    ctx.beginPath(); ctx.moveTo(pad.left,y); ctx.lineTo(W-pad.right,y); ctx.stroke();
+    const val = min + (max-min)*f;
+    ctx.fillStyle = '#55556a';
+    ctx.font = '10px DM Mono';
+    ctx.textAlign = 'right';
+    ctx.fillText('$'+Math.round(val/1000)+'k', pad.left-6, y+4);
+  });
+
+  // Line
+  const pts = history.map((h,i)=>({
+    x: pad.left + (i/(history.length-1||1)) * plotW,
+    y: pad.top + plotH * (1-(h.value-min)/(max-min||1))
+  }));
+
+  // Gradient fill
+  const grad = ctx.createLinearGradient(0,pad.top,0,H-pad.bottom);
+  grad.addColorStop(0,'rgba(232,255,71,0.2)');
+  grad.addColorStop(1,'rgba(232,255,71,0)');
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, H-pad.bottom);
+  pts.forEach(p=>ctx.lineTo(p.x,p.y));
+  ctx.lineTo(pts[pts.length-1].x, H-pad.bottom);
+  ctx.closePath();
+  ctx.fillStyle = grad; ctx.fill();
+
+  // Line
+  ctx.beginPath();
+  pts.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y));
+  ctx.strokeStyle = '#e8ff47'; ctx.lineWidth = 2.5;
+  ctx.lineJoin = 'round'; ctx.stroke();
+
+  // Points + labels
+  history.forEach((h,i)=>{
+    const p = pts[i];
+    ctx.beginPath(); ctx.arc(p.x,p.y,4,0,Math.PI*2);
+    ctx.fillStyle='#e8ff47'; ctx.fill();
+    ctx.fillStyle='#9999b0'; ctx.font='10px DM Mono'; ctx.textAlign='center';
+    ctx.fillText(h.month, p.x, H-pad.bottom+16);
+  });
+}
+
+// ── Portfolio ─────────────────────────────────────────
+function renderPortfolio() {
+  const { crypto, etfs } = state.portfolio;
+  const { btc, eth } = state.cryptoPrices;
+
+  let totalValue = 0, totalDCA = 0;
+
+  // Crypto
+  const cryptoList = document.getElementById('cryptoList');
+  cryptoList.innerHTML = '';
+  crypto.forEach(c => {
+    const price = c.ticker==='BTC' ? btc : eth;
+    const value = c.units * price;
+    totalValue += value;
+    totalDCA += c.dca;
+    cryptoList.innerHTML += `
+      <div class="crypto-row">
+        <div class="crypto-left">
+          <div class="crypto-name">${c.name} <span style="color:var(--text3);font-size:13px;font-family:'DM Mono',monospace">${c.ticker}</span></div>
+          <div class="crypto-price">$${price.toLocaleString('en-CA',{minimumFractionDigits:2,maximumFractionDigits:2})} CAD · ${c.units.toFixed(6)} units</div>
+        </div>
+        <div class="crypto-right">
+          <div class="crypto-value">$${value.toLocaleString('en-CA',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+          <div class="crypto-units">DCA $${c.dca}/mo</div>
+        </div>
+      </div>`;
+  });
+
+  // ETFs
+  const portList = document.getElementById('portfolioList');
+  portList.innerHTML = '';
+  etfs.filter(e=>e.name).forEach(e => {
+    const value = e.units * e.avgCost;
+    totalValue += value;
+    totalDCA += e.dca;
+    portList.innerHTML += `
+      <div class="portfolio-row">
+        <div>
+          <div class="portfolio-ticker">${e.ticker}</div>
+          <div class="portfolio-name">${e.name}</div>
+        </div>
+        <div class="portfolio-account">${e.account}</div>
+        <div>
+          <div class="portfolio-value" style="color:var(--accent)">$${value.toLocaleString('en-CA',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+          <div class="portfolio-dca">${e.dca>0?'DCA $'+e.dca+'/mo':'—'}</div>
+        </div>
+      </div>`;
+  });
+
+  state.currentPortfolioValue = totalValue;
+  state.monthlyDCA = totalDCA;
+
+  document.getElementById('port-total').textContent = '$'+totalValue.toLocaleString('en-CA',{minimumFractionDigits:0,maximumFractionDigits:0});
+  document.getElementById('port-dca').textContent = '$'+totalDCA.toLocaleString('en-CA',{minimumFractionDigits:0,maximumFractionDigits:0})+'/mo';
+  document.getElementById('port-annual').textContent = '$'+(totalDCA*12).toLocaleString('en-CA',{minimumFractionDigits:0,maximumFractionDigits:0})+'/yr';
+
+  drawProjection(5, document.querySelector('.proj-btn.active'));
+}
+
+function drawProjection(years, btn) {
+  document.querySelectorAll('.proj-btn').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+
+  const canvas = document.getElementById('projectionChart');
+  const ctx = canvas.getContext('2d');
+  canvas.width = (canvas.offsetWidth||600) * (window.devicePixelRatio||1);
+  canvas.height = 250 * (window.devicePixelRatio||1);
+  ctx.scale(window.devicePixelRatio||1,window.devicePixelRatio||1);
+  const W = canvas.offsetWidth||600, H = 250;
+  const pad = {top:20,right:20,bottom:30,left:70};
+  const plotW = W-pad.left-pad.right, plotH = H-pad.top-pad.bottom;
+
+  const r = 0.07/12;
+  const months = years*12;
+  const dca = state.monthlyDCA || 966;
+  const start = state.currentPortfolioValue || 45000;
+
+  const withDCA = [], noDCA = [];
+  for(let m=0;m<=months;m++) {
+    withDCA.push(start*Math.pow(1+r,m) + dca*(Math.pow(1+r,m)-1)/r);
+    noDCA.push(start*Math.pow(1+r,m));
+  }
+
+  const allVals = [...withDCA,...noDCA];
+  const min=0, max=Math.max(...allVals)*1.05;
+  const step = Math.ceil(months/12);
+  const pts_dca = withDCA.filter((_,i)=>i%step===0||i===months);
+  const pts_no  = noDCA.filter((_,i)=>i%step===0||i===months);
+  const n = pts_dca.length;
+
+  ctx.clearRect(0,0,W,H);
+
+  // Grid
+  ctx.strokeStyle='#2a2a38'; ctx.lineWidth=1;
+  [0,0.25,0.5,0.75,1].forEach(f=>{
+    const y=pad.top+plotH*(1-f);
+    ctx.beginPath();ctx.moveTo(pad.left,y);ctx.lineTo(W-pad.right,y);ctx.stroke();
+    ctx.fillStyle='#55556a';ctx.font='10px DM Mono';ctx.textAlign='right';
+    ctx.fillText('$'+Math.round((min+(max-min)*f)/1000)+'k',pad.left-6,y+4);
+  });
+
+  const toX = i => pad.left + (i/(n-1||1))*plotW;
+  const toY = v => pad.top + plotH*(1-(v-min)/(max-min||1));
+
+  // No DCA line (muted)
+  ctx.beginPath();
+  pts_no.forEach((v,i)=>i===0?ctx.moveTo(toX(i),toY(v)):ctx.lineTo(toX(i),toY(v)));
+  ctx.strokeStyle='#363648';ctx.lineWidth=1.5;ctx.stroke();
+
+  // DCA gradient fill
+  const grad=ctx.createLinearGradient(0,pad.top,0,H-pad.bottom);
+  grad.addColorStop(0,'rgba(0,212,200,0.2)');
+  grad.addColorStop(1,'rgba(0,212,200,0)');
+  ctx.beginPath();
+  ctx.moveTo(toX(0),H-pad.bottom);
+  pts_dca.forEach((v,i)=>ctx.lineTo(toX(i),toY(v)));
+  ctx.lineTo(toX(n-1),H-pad.bottom);
+  ctx.closePath();
+  ctx.fillStyle=grad;ctx.fill();
+
+  // DCA line
+  ctx.beginPath();
+  pts_dca.forEach((v,i)=>i===0?ctx.moveTo(toX(i),toY(v)):ctx.lineTo(toX(i),toY(v)));
+  ctx.strokeStyle='#00d4c8';ctx.lineWidth=2.5;ctx.stroke();
+
+  // Year labels
+  ctx.fillStyle='#9999b0';ctx.font='10px DM Mono';ctx.textAlign='center';
+  const currentYear = new Date().getFullYear();
+  for(let y=0;y<=years;y++) {
+    const i=Math.round(y*(n-1)/years);
+    ctx.fillText(currentYear+y, toX(i), H-pad.bottom+16);
+  }
+
+  // Final value callout
+  const finalVal = pts_dca[n-1];
+  ctx.fillStyle='#e8ff47';ctx.font='bold 12px Syne';ctx.textAlign='right';
+  ctx.fillText('$'+Math.round(finalVal/1000)+'k',W-pad.right,pad.top+14);
+}
+
+// ── Goals ─────────────────────────────────────────────
+function renderGoals() {
+  const list = document.getElementById('goalsList');
+  list.innerHTML = '';
+  state.goals.filter(g=>g.name&&g.target>0).forEach(g => {
+    const pct = Math.min((g.current/g.target)*100,100);
+    const remaining = g.target - g.current;
+    list.innerHTML += `
+      <div class="goal-card">
+        <div class="goal-top">
+          <div>
+            <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--text3);margin-bottom:4px">${g.funded}</div>
+            <div class="goal-name">${g.name}</div>
+          </div>
+          <div class="goal-pct">${pct.toFixed(1)}%</div>
+        </div>
+        <div class="goal-bar-track">
+          <div class="goal-bar-fill" style="width:${pct}%"></div>
+        </div>
+        <div class="goal-meta">
+          <div class="goal-meta-item">
+            <div class="goal-meta-label">Saved</div>
+            <div class="goal-meta-value">$${g.current.toLocaleString('en-CA',{minimumFractionDigits:0,maximumFractionDigits:0})}</div>
+          </div>
+          <div class="goal-meta-item">
+            <div class="goal-meta-label">Target</div>
+            <div class="goal-meta-value">$${g.target.toLocaleString('en-CA',{minimumFractionDigits:0,maximumFractionDigits:0})}</div>
+          </div>
+          <div class="goal-meta-item">
+            <div class="goal-meta-label">Remaining</div>
+            <div class="goal-meta-value" style="color:var(--red)">$${remaining.toLocaleString('en-CA',{minimumFractionDigits:0,maximumFractionDigits:0})}</div>
+          </div>
+          <div class="goal-meta-item">
+            <div class="goal-meta-label">Monthly</div>
+            <div class="goal-meta-value">$${(g.monthly||0).toLocaleString('en-CA',{minimumFractionDigits:0,maximumFractionDigits:0})}</div>
+          </div>
+          <div class="goal-meta-item">
+            <div class="goal-meta-label">Months Left</div>
+            <div class="goal-meta-value">${g.months||'—'}</div>
+          </div>
+          <div class="goal-meta-item">
+            <div class="goal-meta-label">Est. Date</div>
+            <div class="goal-meta-value" style="font-size:12px">${getEstDate(g.months)}</div>
+          </div>
+        </div>
+      </div>`;
+  });
+
+  // Animate goal bars
+  requestAnimationFrame(()=>{
+    document.querySelectorAll('.goal-bar-fill').forEach(b=>{
+      const w=b.style.width;b.style.width='0%';
+      setTimeout(()=>b.style.width=w,100);
+    });
+  });
+}
+
+function getEstDate(months) {
+  if (!months || months==='—' || isNaN(months)) return '—';
+  const d = new Date();
+  d.setMonth(d.getMonth() + parseInt(months));
+  return d.toLocaleDateString('en-CA',{month:'short',year:'numeric'});
+}
+
+// ── Transactions ──────────────────────────────────────
+function populateFilters() {
+  const months = [...new Set(state.transactions.map(t=>t.month).filter(Boolean))];
+  const cats   = [...new Set(state.transactions.map(t=>t.category).filter(Boolean))].sort();
+  const mSel = document.getElementById('txMonthFilter');
+  const cSel = document.getElementById('txCatFilter');
+  months.forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=m;mSel.appendChild(o);});
+  cats.forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;cSel.appendChild(o);});
+  renderTransactions();
+}
+
+function renderTransactions() {
+  const month = document.getElementById('txMonthFilter')?.value || '';
+  const cat   = document.getElementById('txCatFilter')?.value || '';
+  const qual  = document.getElementById('txQualFilter')?.value || '';
+
+  let filtered = state.transactions.filter(t =>
+    (!month || t.month===month) &&
+    (!cat   || t.category===cat) &&
+    (!qual  || t.quality===qual)
+  ).sort((a,b)=>b.date?.localeCompare(a.date||'')||0);
+
+  const total = filtered.reduce((s,t)=>s+t.cost,0);
+  document.getElementById('txTotal').textContent = '$'+total.toFixed(2);
+
+  const tbody = document.getElementById('txBody');
+  tbody.innerHTML = '';
+  filtered.forEach(t=>{
+    tbody.innerHTML += `
+      <tr>
+        <td class="td-mono">${t.date||''}</td>
+        <td>${t.category||''}</td>
+        <td style="color:var(--text3)">${t.location||'—'}</td>
+        <td><span class="td-tag tag-${(t.quality||'').toLowerCase()}">${t.quality||''}</span></td>
+        <td class="td-right td-mono td-accent">$${(t.cost||0).toFixed(2)}</td>
+        <td style="color:var(--text3);font-size:11px">${t.notes||''}</td>
+      </tr>`;
+  });
+}
+
+// ══════════════════════════════════════════════════════
+// TAB SWITCHING
+// ══════════════════════════════════════════════════════
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelector(`[onclick="switchTab('${name}')"]`).classList.add('active');
+  document.getElementById(`panel-${name}`).classList.add('active');
+  if (name==='portfolio') setTimeout(()=>drawProjection(5,document.querySelector('.proj-btn.active')),50);
+  if (name==='networth')  setTimeout(()=>drawNetWorthChart(state.networthHistory||DEMO.networthHistory),50);
+}
+
+// ══════════════════════════════════════════════════════
+// KICK OFF
+// ══════════════════════════════════════════════════════
+init();
+window.addEventListener('resize', ()=>{
+  drawNetWorthChart(state.networthHistory||DEMO.networthHistory);
+  drawProjection(parseInt(document.querySelector('.proj-btn.active')?.textContent)||5, document.querySelector('.proj-btn.active'));
+});
+</script>
+</body>
+</html>
